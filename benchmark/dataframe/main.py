@@ -1,9 +1,9 @@
 import asyncio
 from pathlib import Path
 
-from .cinfer_impl import run_cinfer
+from .cinfer import run_cinfer
 from .data import SCENARIOS
-from .langgraph_impl import run_langgraph
+from .langgraph import run_langgraph
 from .report import summarize_run, write_report
 
 

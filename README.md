@@ -67,3 +67,12 @@ The model will be constrained to generate either "product_id" or "price_usd" for
 
 ## Examples
 The goal of the project can be consisely understood by running the samples in /examples. 
+
+## Benchmarks
+A concise benchmark comparing cinfer and langraph at a data analysis task is included in ./benchmark/dataframe
+
+The cinfer agent is implemented in ~50 lines and the langraph agent is implemented in ~100 lines.
+
+The cinfer agent performs with 100% accuracy, while the langraph agent had a 14% accuracy.
+
+Further benchmarks will be needed to evaluate whether this performance persists for more ambiguous cases where syntactic accuarcy is more at odds with semantic accuracy.
