@@ -255,6 +255,7 @@ class Agent:
             param_type = param.annotation if hasattr(param, 'annotation') else str
             param_type_str = str(param_type)
             is_complex = 'list' in param_type_str.lower() or 'dict' in param_type_str.lower()
+        dependency = tool.get_dependency(param_name) if tool else None
 
         # Build prompt for parameter extraction WITH conversation history
         # Track how many times this tool has been called to handle multi-entity extraction
@@ -375,6 +376,10 @@ class Agent:
         
         # Cleanup leading/trailing punctuation/quotes again
         value = value.strip().strip('"\'`.:')
+
+        if dependency and dependency.is_grammar and dependency.source_name.startswith("<language:"):
+            language = dependency.source_name[len("<language:"):-1]
+            value = self._normalize_language_output(language, value)
 
         logger.info(f"> Parameter {param_name} = {value[:100]}..." if len(value) > 100 else f"> Parameter {param_name} = {value}")
 
@@ -514,6 +519,24 @@ class Agent:
                 return value
 
         return value
+
+    def _normalize_language_output(self, language: str, value: str) -> str:
+        normalized = value.strip()
+
+        if "```" in normalized:
+            import re
+            lang = re.escape(language)
+            fenced = re.search(rf"```\s*{lang}\s*\n(.*?)```", normalized, re.DOTALL | re.IGNORECASE)
+            if not fenced:
+                fenced = re.search(r"```\s*\w*\s*\n(.*?)```", normalized, re.DOTALL)
+            if fenced:
+                normalized = fenced.group(1).strip()
+
+        lines = normalized.splitlines()
+        if lines and lines[0].strip().lower() == language.lower() and len(lines) > 1:
+            normalized = "\n".join(lines[1:]).strip()
+
+        return normalized
 
     async def _execute_tool(self, tool_name: str, user_message: str, reasoning: str = "") -> str:
         """
