@@ -2,3 +2,6 @@
 cinfer.egg-info
 __pycache__
 old
+/pypy
+/llama.cpp
+/grammar/gbnf_grammar
