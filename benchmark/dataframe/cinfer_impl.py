@@ -1,13 +1,19 @@
-from typing import Dict, List
+from cinfer import Agent, depends, tool
 
-from cinfer import Agent
+from .data import SALES_COLUMNS, SALES_DF
 
-from .data_frame import SALES_COLUMNS
-from .types import Scenario
-from .tools_cinfer import cinfer_tool_calls
+cinfer_tool_calls = []
 
 
-async def run_cinfer(scenarios: List[Scenario], server_url: str) -> Dict:
+@tool
+@depends(column=SALES_COLUMNS)
+def filter_sales_cinfer(column: str, value: str) -> str:
+    result = SALES_DF[SALES_DF[column].astype(str).str.contains(value, case=False, na=False, regex=False)]
+    cinfer_tool_calls.append({"column": column, "value": value})
+    return f"Found {len(result)} orders where {column} contains '{value}'"
+
+
+async def run_cinfer(scenarios, server_url):
     agent = Agent(
         system_prompt="You are a sales data analyst. Use filter_sales_cinfer to query sales data.",
         server_url=server_url,

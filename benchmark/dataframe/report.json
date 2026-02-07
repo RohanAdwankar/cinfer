@@ -1,5 +1,5 @@
 {
-  "langgraph_baseline": {
+  "langgraph": {
     "results": [
       {
         "scenario": "filter_by_customer_name",
@@ -7,8 +7,7 @@
         "used_column": "company",
         "column_is_valid": false,
         "should_exist": true,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_product_category",
@@ -16,8 +15,7 @@
         "used_column": "Computers",
         "column_is_valid": false,
         "should_exist": true,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_order_status",
@@ -25,8 +23,7 @@
         "used_column": "order_date",
         "column_is_valid": true,
         "should_exist": true,
-        "had_error": false,
-        "used_schema_tool": false
+        "had_error": false
       },
       {
         "scenario": "filter_by_sales_rep_name",
@@ -34,8 +31,7 @@
         "used_column": "customer_name",
         "column_is_valid": true,
         "should_exist": true,
-        "had_error": false,
-        "used_schema_tool": false
+        "had_error": false
       },
       {
         "scenario": "filter_by_customer_segment",
@@ -43,8 +39,7 @@
         "used_column": "Enterprise",
         "column_is_valid": false,
         "should_exist": true,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_customer_type",
@@ -52,8 +47,7 @@
         "used_column": "customer_type",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_customer_company",
@@ -61,8 +55,7 @@
         "used_column": "company",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_product_type",
@@ -70,8 +63,7 @@
         "used_column": "product_type",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_product_description",
@@ -79,8 +71,7 @@
         "used_column": "product_description",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_price",
@@ -88,8 +79,7 @@
         "used_column": "price",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_total_price",
@@ -97,8 +87,7 @@
         "used_column": "total_price",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_discount_amount",
@@ -106,8 +95,7 @@
         "used_column": "discount",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_discount_percent",
@@ -115,8 +103,7 @@
         "used_column": "discount",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_profit_margin",
@@ -124,8 +111,7 @@
         "used_column": "ProfitMargin",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_revenue",
@@ -133,8 +119,7 @@
         "used_column": "revenue",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_sales_rep_email",
@@ -142,8 +127,7 @@
         "used_column": "rep",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_order_number",
@@ -151,8 +135,7 @@
         "used_column": "order_number",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_invoice_id",
@@ -160,8 +143,7 @@
         "used_column": "INV_INVNO",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_payment_status",
@@ -169,8 +151,7 @@
         "used_column": "order_id",
         "column_is_valid": true,
         "should_exist": false,
-        "had_error": false,
-        "used_schema_tool": false
+        "had_error": false
       },
       {
         "scenario": "filter_by_country",
@@ -178,8 +159,7 @@
         "used_column": "Country",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_state",
@@ -187,8 +167,7 @@
         "used_column": "State",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       },
       {
         "scenario": "filter_by_city",
@@ -196,109 +175,11 @@
         "used_column": "city",
         "column_is_valid": false,
         "should_exist": false,
-        "had_error": true,
-        "used_schema_tool": false
+        "had_error": true
       }
     ],
     "valid_columns": 3,
     "hallucinations": 19,
-    "schema_checks": 0,
-    "total": 22
-  },
-  "langgraph_schema": {
-    "results": [
-      {
-        "scenario": "filter_by_customer_name",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_product_category",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_order_status",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_sales_rep_name",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_customer_segment",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_customer_type",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_customer_company",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_product_type",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_product_description",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_price",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_total_price",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_discount_amount",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_discount_percent",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_profit_margin",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_revenue",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_sales_rep_email",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_order_number",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_invoice_id",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_payment_status",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_country",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_state",
-        "no_tool_call": true
-      },
-      {
-        "scenario": "filter_by_city",
-        "no_tool_call": true
-      }
-    ],
-    "valid_columns": 0,
-    "hallucinations": 0,
-    "schema_checks": 22,
     "total": 22
   },
   "cinfer": {
@@ -453,7 +334,7 @@
       {
         "scenario": "filter_by_city",
         "expected_column": "city",
-        "used_column": "customer_name",
+        "used_column": "customer_segment",
         "column_is_valid": true,
         "should_exist": false
       }
