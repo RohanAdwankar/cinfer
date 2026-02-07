@@ -1,0 +1,23 @@
+DATAFRAME COLUMN HALLUCINATION BENCHMARK
+Server: http://127.0.0.1:8080
+
+Summary
+- LangGraph baseline: valid 3/22 (14%), hallucinations 19, no_tool 0, errors 0, schema_checks 0
+- LangGraph + schema: valid 0/22 (0%), hallucinations 0, no_tool 22, errors 0, schema_checks 22
+- Cinfer: valid 22/22 (100%), hallucinations 0, no_tool 0, errors 0
+
+Examples (first 5 issues per run)
+LangGraph baseline:
+- filter_by_customer_name: used company expected customer_name
+- filter_by_product_category: used Computers expected product_category
+- filter_by_customer_segment: used Enterprise expected customer_segment
+- filter_by_customer_type: used customer_type expected customer_type
+- filter_by_customer_company: used company expected customer_company
+LangGraph + schema:
+- filter_by_customer_name: no tool call
+- filter_by_product_category: no tool call
+- filter_by_order_status: no tool call
+- filter_by_sales_rep_name: no tool call
+- filter_by_customer_segment: no tool call
+Cinfer:
+- (no issues)
