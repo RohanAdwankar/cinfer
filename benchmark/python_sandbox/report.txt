@@ -1,0 +1,17 @@
+Python sandbox benchmark
+
+Summary
+- LangChain: ok 0/4 (0%), errors 4
+- Cinfer: ok 0/4 (0%), errors 4
+
+Examples (first 5 issues per run)
+LangChain:
+- {'scenario': 'revenue_by_region', 'ok': False, 'error': 'json_error: Expecting value: line 1 column 2 (char 1)', 'raw': 'ERROR: sandbox failed (1): Traceback (most recent call last):\n  File "/usr/local/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc\n    return self._engine.get_loc(casted_key)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc\n  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc\n  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item\n  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item\nKeyError: \'region_name\'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File "/workspace/code.py", line 7, in <module>\n    df[\'region_name\'] = df[\'region_name\'].astype(str)\n                        ~~^^^^^^^^^^^^^^^\n  File "/usr/local/lib/python3.11/site-packages/pandas/core/frame.py", line 4102, in __getitem__\n    indexer = self.columns.get_loc(key)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/usr/local/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc\n    raise KeyError(key) from err\nKeyError: \'region_name\''}
+- {'scenario': 'top_customer', 'ok': False, 'error': 'json_error: Expecting value: line 1 column 2 (char 1)', 'raw': 'ERROR: sandbox failed (1): Traceback (most recent call last):\n  File "/workspace/code.py", line 3, in <module>\n    with open("input/sales.csv", \'r\') as file:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: \'input/sales.csv\''}
+- {'scenario': 'avg_computers', 'ok': False, 'error': 'json_error: Expecting value: line 1 column 2 (char 1)', 'raw': 'ERROR: sandbox failed (1): Traceback (most recent call last):\n  File "/workspace/code.py", line 3, in <module>\n    with open("input/sales.csv", \'r\') as file:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: \'input/sales.csv\''}
+- {'scenario': 'east_total', 'ok': False, 'error': 'json_error: Expecting value: line 1 column 2 (char 1)', 'raw': 'ERROR: sandbox failed (1): Traceback (most recent call last):\n  File "/workspace/code.py", line 3, in <module>\n    with open("input/sales.csv", \'r\') as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: \'input/sales.csv\''}
+Cinfer:
+- {'scenario': 'revenue_by_region', 'ok': False, 'error': 'no_json', 'raw': ''}
+- {'scenario': 'top_customer', 'ok': False, 'error': 'no_json', 'raw': ''}
+- {'scenario': 'avg_computers', 'ok': False, 'error': 'no_json', 'raw': 'ERROR: sandbox failed (1): File "/workspace/code.py", line 15\n    )\n    ^\nSyntaxError: unmatched \')\''}
+- {'scenario': 'east_total', 'ok': False, 'error': 'no_json', 'raw': ''}
