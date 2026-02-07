@@ -40,12 +40,13 @@ def _compare(expected: Any, actual: Any, tol: float = 1e-2) -> bool:
 
 
 def evaluate_output(output: str, expected: Any) -> dict:
+    raw = output.strip()
     parsed, error = _extract_json(output)
     if error:
-        return {"ok": False, "error": error, "raw": output.strip()}
+        return {"ok": False, "error": error, "raw": raw}
 
     ok = _compare(expected, parsed)
-    return {"ok": ok, "parsed": parsed}
+    return {"ok": ok, "parsed": parsed, "raw": raw}
 
 
 def summarize_run(name: str, results: list[dict]) -> dict:
@@ -62,7 +63,11 @@ def summarize_run(name: str, results: list[dict]) -> dict:
 
 
 def write_report(path: str, runs: list[dict], raw: dict) -> None:
-    lines = ["Python sandbox benchmark", "", "Summary"]
+    lines = [
+        "Python sandbox benchmark",
+        "",
+        "Summary",
+    ]
     for run in runs:
         rate = (run["ok"] / run["total"] * 100) if run["total"] else 0
         lines.append(
