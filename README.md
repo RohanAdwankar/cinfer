@@ -6,20 +6,6 @@ It works by constraining generation at inference time to obey grammers generated
 
 This project is a work in progress, if benchmarks show strong performance I will put it on pypi to install.
 
-## Problem / Motivation
-
-AI agents work effectively for large models (in the order of 100B to 1T parameters) however they quickly fail for smaller models drastically decreasing their utility.
-Small models typically fail due to hallucination, getting stuck in loops, and an inability to comply with a schema, making it difficult to perform reliable structured output generation, which is necessary to have the AI agent do things in the real world.
-The model I am targetting is Gemma 3 1B, and the goal is to build a library that makes it ergonomic to develop useful agents.
-
-## Solution
-
-Agent libraries are typically decoupled from the inference engine, the goal of this library is to explore how re-coupling them can enable improved performance for SLMs.
-
-Cinfer does this by taking the tool definition and then generating a formal grammer [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) for the tool call. Then when the agent attempts to make a tool call, the inference engine masks the tokens which are not permitted for the grammer. This ensures that if a function requires an integer, the model physically cannot generate a non-integer token. If a tool requires a specific DataFrame column, the model can only select from the list of valid columns.
-
-This differs from other approaches which generate a response, then validate against a schema, then loop till a valid schema is formed because here it is litterally impossible for a syntactically invalid output.
-
 ## Usage
 
 ### Basic Tool Definition
@@ -76,3 +62,16 @@ The cinfer agent is implemented in ~50 lines and the langraph agent is implement
 The cinfer agent performs with 100% accuracy, while the langraph agent had a 14% accuracy.
 
 Further benchmarks will be needed to evaluate whether this performance persists for more ambiguous cases where syntactic accuarcy is more at odds with semantic accuracy.
+## Problem / Motivation
+
+AI agents work effectively for large models (in the order of 100B to 1T parameters) however they quickly fail for smaller models drastically decreasing their utility.
+Small models typically fail due to hallucination, getting stuck in loops, and an inability to comply with a schema, making it difficult to perform reliable structured output generation, which is necessary to have the AI agent do things in the real world.
+The model I am targetting is Gemma 3 1B, and the goal is to build a library that makes it ergonomic to develop useful agents.
+
+## Solution
+
+Agent libraries are typically decoupled from the inference engine, the goal of this library is to explore how re-coupling them can enable improved performance for SLMs.
+
+Cinfer does this by taking the tool definition and then generating a formal grammer [GBNF](https://github.com/ggml-org/llama.cpp/blob/master/grammars/README.md) for the tool call. Then when the agent attempts to make a tool call, the inference engine masks the tokens which are not permitted for the grammer. This ensures that if a function requires an integer, the model physically cannot generate a non-integer token. If a tool requires a specific DataFrame column, the model can only select from the list of valid columns.
+
+This differs from other approaches which generate a response, then validate against a schema, then loop till a valid schema is formed because here it is litterally impossible for a syntactically invalid output.
