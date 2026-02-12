@@ -24,13 +24,13 @@ run_python
 
 
 ================================================================================
-PROMPT (length=788, n_predict=220):
+PROMPT (length=800, n_predict=220):
 ================================================================================
 You are a Python data analyst in a Docker sandbox. Always call run_python exactly once. Send only valid Python code to run_python (no markdown, no explanation). sales_df and regions_df are already loaded pandas DataFrames. Do not read files. Do not print. Put the final JSON-serializable answer in RESULT. sales_df columns: order_id, customer_id, region_id, product_category, price_usd, quantity. regions_df columns: region_id, region_name.
 
 User request: Use sales_df (already loaded). Return [rows, cols] as a JSON list of integers.
 Write ONLY executable Python statements for the tool parameter.
-Do not define functions or classes.
+Do not define or call the tool function itself.
 Do not include markdown fences or explanations.
 Use existing variables if provided by the tool context.
 Set RESULT to the final JSON-serializable value.
@@ -38,52 +38,49 @@ Set RESULT to the final JSON-serializable value.
 ================================================================================
 GENERATED:
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
+def run_python(sales_df, regions_df):
+    return [1, 2, 3]
 
 RESULT = [1, 2, 3]
 ```
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
+def run_python(sales_df, regions_df):
+    return [1, 2, 3]
 
 RESULT = [1, 2, 3]
 ```
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
+def run_python(sales_df, regions_df):
+    return [1, 2, 3]
 
 RESULT = [1, 2, 3]
 ```
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
+def run_python(sales_df, regions_df):
+    return [1, 2, 3]
 
 RESULT = [1, 2, 3]
 ```
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
+def run_python(sales_df, regions_df):
+    return [1, 2, 3]
 
 RESULT = [1, 2, 3]
 ```
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
-
-
+def run
 ================================================================================
 
 
 ================================================================================
-PROMPT (length=435, n_predict=180):
+PROMPT (length=447, n_predict=180):
 ================================================================================
 Original user request:
 Use sales_df (already loaded). Return [rows, cols] as a JSON list of integers.
 
 Current invalid code:
-def run_python(input_data):
-  return [1, 2, 3]
+def run_python(sales_df, regions_df):
+    return [1, 2, 3]
 
 RESULT = [1, 2, 3]
 
@@ -96,75 +93,36 @@ Set RESULT to the final JSON-serializable value.
 ================================================================================
 GENERATED:
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
+result = [1, 2, 3]
 ```
+```python
 RESULT = [1, 2, 3]
-```python
-def run_python(input_data):
-  return [1, 2, 3]
 ```
+```python
 RESULT = [1, 2, 3]
-```python
-def run_python(input_data):
-  return [1, 2, 3]
 ```
+```python
 RESULT = [1, 2, 3]
-```python
-def run_python(input_data):
-  return [1, 2, 3]
 ```
+```python
 RESULT = [1, 2, 3]
+```
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
-================================================================================
-
-
-================================================================================
-PROMPT (length=415, n_predict=180):
-================================================================================
-Original user request:
-Use sales_df (already loaded). Return [rows, cols] as a JSON list of integers.
-
-Current invalid code:
-def run_python(input_data):
-  return [1, 2, 3]
-
-Rewrite this as valid executable Python statements for a tool argument.
-Do not define or call the tool function itself.
-No markdown fences or explanations.
-Use existing variables from context.
-Set RESULT to the final JSON-serializable value.
-
-================================================================================
-GENERATED:
+RESULT = [1, 2, 3]
+```
 ```python
-def run_python(input_data):
-  return [1, 2, 3]
+RESULT = [1, 2, 3]
 ```
-RESULT = run_python(input_data)
+```python
+RESULT = [1, 2, 3]
 ```
-RESULT = run_python(input_data)
+```python
+RESULT = [1, 2, 3]
 ```
-RESULT = run_python(input_data)
+```python
+RESULT = [1, 2, 3]
 ```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
-```
-RESULT = run_python(input_data)
+```python
+RESULT = [1, 2
 ================================================================================
 

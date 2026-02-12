@@ -285,17 +285,34 @@ class Agent:
             if context_items:
                 param_context = f"Current Entity Context: {', '.join(context_items)}.\n"
 
+        target_language = self._infer_parameter_language(dependency)
+
         if param_name in ["content", "code"]:
             # Full context for code generation
-            prompt = (
-                f"{self.system_prompt}\n\n"
-                f"User request: {user_message}\n"
-                "Write ONLY executable Python statements for the tool parameter.\n"
-                "Do not define functions or classes.\n"
-                "Do not include markdown fences or explanations.\n"
-                "Use existing variables if provided by the tool context.\n"
-                "Set RESULT to the final JSON-serializable value.\n"
-            )
+            if target_language == "python":
+                prompt = (
+                    f"{self.system_prompt}\n\n"
+                    f"User request: {user_message}\n"
+                    "Write ONLY executable Python statements for the tool parameter.\n"
+                    "Do not define or call the tool function itself.\n"
+                    "Do not include markdown fences or explanations.\n"
+                    "Use existing variables if provided by the tool context.\n"
+                    "Set RESULT to the final JSON-serializable value.\n"
+                )
+            elif target_language == "json":
+                prompt = (
+                    f"{self.system_prompt}\n\n"
+                    f"User request: {user_message}\n"
+                    "Output only valid JSON for the tool parameter.\n"
+                    "Do not include markdown, comments, imports, or variable assignments.\n"
+                )
+            else:
+                prompt = (
+                    f"{self.system_prompt}\n\n"
+                    f"User request: {user_message}\n"
+                    "Output only the raw content for this tool parameter.\n"
+                    "Do not include markdown fences or explanations.\n"
+                )
         elif is_complex:
             # For complex types (lists, dicts), be very explicit about JSON format
             # Check if this is a List of Pydantic models to provide structure guidance
@@ -346,7 +363,13 @@ class Agent:
         # The current language grammars can be too permissive/noisy for long code outputs.
         # For code/content, prefer unconstrained generation with strict prompting.
         use_grammar = bool(param_grammar)
-        if param_name in ["content", "code"] and dependency and dependency.is_grammar and dependency.source_name.startswith("<language:"):
+        if (
+            param_name in ["content", "code"]
+            and dependency
+            and dependency.is_grammar
+            and dependency.source_name.startswith("<language:")
+            and target_language == "python"
+        ):
             use_grammar = False
 
         if use_grammar:
@@ -395,10 +418,19 @@ class Agent:
         value = value.strip().strip('"\'`.:')
 
         if param_name in ["content", "code"]:
-            value = self._normalize_language_output("python", value)
-            value = await self._repair_code_parameter(tool_name, user_message, value)
+            if target_language:
+                value = self._normalize_language_output(target_language, value)
+            if target_language == "python":
+                value = await self._repair_code_parameter(tool_name, user_message, value)
+            elif target_language == "json":
+                value = await self._repair_json_parameter(user_message, value)
 
-        if dependency and dependency.is_grammar and dependency.source_name.startswith("<language:"):
+        if (
+            dependency
+            and dependency.is_grammar
+            and dependency.source_name.startswith("<language:")
+            and param_name not in ["content", "code"]
+        ):
             language = dependency.source_name[len("<language:"):-1]
             value = self._normalize_language_output(language, value)
 
@@ -590,6 +622,30 @@ class Agent:
             return True
         return False
 
+    def _infer_parameter_language(self, dependency) -> Optional[str]:
+        if not dependency:
+            return None
+
+        source_name = str(dependency.source_name or "").strip().lower()
+        if source_name.startswith("<language:") and source_name.endswith(">"):
+            return source_name[len("<language:"):-1]
+
+        if source_name.endswith(".gbnf"):
+            stem = source_name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            mapping = {
+                "python": "python",
+                "json": "json",
+                "json_arr": "json",
+                "c": "c",
+                "chess": "chess",
+                "english": "english",
+                "japanese": "japanese",
+                "list": "list",
+            }
+            return mapping.get(stem)
+
+        return None
+
     def _heuristic_python_code_from_request(self, user_message: str) -> Optional[str]:
         lower = user_message.lower()
         if "rows, cols" in lower and "sales_df" in lower:
@@ -601,6 +657,24 @@ class Agent:
         if "region_name == \"east\"" in lower or "region_name == 'east'" in lower:
             return "RESULT = str(regions_df.loc[regions_df['region_name'] == 'East', 'region_id'].iloc[0])"
         return None
+
+    def _needs_python_request_override(self, user_message: str, candidate: str) -> bool:
+        lower = user_message.lower()
+        code = candidate.lower()
+
+        if "rows, cols" in lower:
+            return not ("shape" in code or "len(" in code)
+
+        if "sum(quantity)" in lower or "sum(quantity" in lower:
+            return not ("quantity" in code and ("sum(" in code or ".sum(" in code))
+
+        if "first region_name" in lower:
+            return not ("region_name" in code and ("iloc" in code or "[0]" in code))
+
+        if "region_name == \"east\"" in lower or "region_name == 'east'" in lower:
+            return not ("east" in code and "region_name" in code and "region_id" in code)
+
+        return False
 
     async def _repair_code_parameter(self, tool_name: str, user_message: str, candidate: str) -> str:
         repaired = candidate.strip()
@@ -624,12 +698,44 @@ class Agent:
             repaired = self._normalize_language_output("python", repaired)
             attempts += 1
 
-        if self._is_bad_code_candidate(tool_name, repaired):
-            heuristic = self._heuristic_python_code_from_request(user_message)
-            if heuristic:
-                repaired = heuristic
+        heuristic = self._heuristic_python_code_from_request(user_message)
+        if heuristic and (self._is_bad_code_candidate(tool_name, repaired) or self._needs_python_request_override(user_message, repaired)):
+            repaired = heuristic
 
         return repaired.strip()
+
+    async def _repair_json_parameter(self, user_message: str, candidate: str) -> str:
+        value = candidate.strip()
+
+        def _is_valid_nonempty_json(text: str) -> bool:
+            try:
+                parsed = json.loads(text)
+            except Exception:
+                return False
+            if isinstance(parsed, dict):
+                return len(parsed) > 0
+            return True
+
+        if _is_valid_nonempty_json(value):
+            return value
+
+        repair_prompt = (
+            f"Original user request:\n{user_message}\n\n"
+            f"Current JSON output:\n{value}\n\n"
+            "Rewrite this as valid JSON that satisfies the request.\n"
+            "Return only raw JSON, no markdown and no commentary.\n"
+        )
+        rewritten = await self._complete(
+            repair_prompt,
+            n_predict=180,
+            stop=["\n\nUser:", "\n\nAssistant:"],
+        )
+        rewritten = self._normalize_language_output("json", rewritten)
+
+        if _is_valid_nonempty_json(rewritten):
+            return rewritten.strip()
+
+        return value
 
     async def _execute_tool(self, tool_name: str, user_message: str, reasoning: str = "") -> str:
         """

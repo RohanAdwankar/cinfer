@@ -24,13 +24,13 @@ run_python
 
 
 ================================================================================
-PROMPT (length=826, n_predict=220):
+PROMPT (length=838, n_predict=220):
 ================================================================================
 You are a Python data analyst in a Docker sandbox. Always call run_python exactly once. Send only valid Python code to run_python (no markdown, no explanation). sales_df and regions_df are already loaded pandas DataFrames. Do not read files. Do not print. Put the final JSON-serializable answer in RESULT. sales_df columns: order_id, customer_id, region_id, product_category, price_usd, quantity. regions_df columns: region_id, region_name.
 
 User request: Use regions_df (already loaded). Find region_id where region_name == "East". Return that region_id as a JSON string.
 Write ONLY executable Python statements for the tool parameter.
-Do not define functions or classes.
+Do not define or call the tool function itself.
 Do not include markdown fences or explanations.
 Use existing variables if provided by the tool context.
 Set RESULT to the final JSON-serializable value.
