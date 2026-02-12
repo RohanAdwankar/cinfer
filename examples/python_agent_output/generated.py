@@ -1,4 +1,7 @@
+import json
+
 def add(a, b):
     return a + b
 
-print(add(2, 3))
+result = add(2, 3)
+print(result)

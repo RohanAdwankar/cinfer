@@ -74,3 +74,97 @@ def run_python(input_data):
 
 ================================================================================
 
+
+================================================================================
+PROMPT (length=435, n_predict=180):
+================================================================================
+Original user request:
+Use sales_df (already loaded). Return [rows, cols] as a JSON list of integers.
+
+Current invalid code:
+def run_python(input_data):
+  return [1, 2, 3]
+
+RESULT = [1, 2, 3]
+
+Rewrite this as valid executable Python statements for a tool argument.
+Do not define or call the tool function itself.
+No markdown fences or explanations.
+Use existing variables from context.
+Set RESULT to the final JSON-serializable value.
+
+================================================================================
+GENERATED:
+```python
+def run_python(input_data):
+  return [1, 2, 3]
+```
+RESULT = [1, 2, 3]
+```python
+def run_python(input_data):
+  return [1, 2, 3]
+```
+RESULT = [1, 2, 3]
+```python
+def run_python(input_data):
+  return [1, 2, 3]
+```
+RESULT = [1, 2, 3]
+```python
+def run_python(input_data):
+  return [1, 2, 3]
+```
+RESULT = [1, 2, 3]
+```python
+def run_python(input_data):
+  return [1, 2, 3]
+================================================================================
+
+
+================================================================================
+PROMPT (length=415, n_predict=180):
+================================================================================
+Original user request:
+Use sales_df (already loaded). Return [rows, cols] as a JSON list of integers.
+
+Current invalid code:
+def run_python(input_data):
+  return [1, 2, 3]
+
+Rewrite this as valid executable Python statements for a tool argument.
+Do not define or call the tool function itself.
+No markdown fences or explanations.
+Use existing variables from context.
+Set RESULT to the final JSON-serializable value.
+
+================================================================================
+GENERATED:
+```python
+def run_python(input_data):
+  return [1, 2, 3]
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+```
+RESULT = run_python(input_data)
+================================================================================
+

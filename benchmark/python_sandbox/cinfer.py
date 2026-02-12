@@ -11,7 +11,6 @@ from .sandbox import run_python_in_container, wrap_benchmark_code
 TRACE_DIR = Path(__file__).resolve().parent / "traces"
 cinfer_tool_calls = []
 ALLOWED_SERVER_URL = "http://127.0.0.1:8080"
-CURRENT_TASK = ""
 
 
 def _extract_fenced_code(text: str) -> str:
@@ -104,40 +103,10 @@ def _sanitize_code(code: str) -> str:
     return cleaned.strip()
 
 
-def _needs_fallback(code: str) -> bool:
-    stripped = code.strip()
-    if not stripped:
-        return True
-    if "RESULT" not in stripped:
-        return True
-    if "def run_python" in stripped:
-        return True
-    if re.search(r"\brun_python\s*\(", stripped):
-        return True
-    if re.search(r"^\s*RESULT\s*=\s*result\b", stripped, re.MULTILINE):
-        return True
-    return False
-
-
-def _fallback_code_for_task(task: str) -> str:
-    lower = task.lower()
-    if "rows, cols" in lower:
-        return "RESULT = [int(sales_df.shape[0]), int(sales_df.shape[1])]"
-    if "first region_name" in lower:
-        return "RESULT = str(regions_df['region_name'].iloc[0])"
-    if "sum(quantity)" in lower or "sum(quantity" in lower:
-        return "RESULT = int(sales_df['quantity'].sum())"
-    if "region_name == \"east\"" in lower or "region_name == 'east'" in lower:
-        return "RESULT = str(regions_df.loc[regions_df['region_name'] == 'East', 'region_id'].iloc[0])"
-    return "RESULT = None"
-
-
 @tool
 @depends_language(code="python")
 def run_python(code: str) -> str:
     sanitized = _sanitize_code(code)
-    if _needs_fallback(sanitized):
-        sanitized = _fallback_code_for_task(CURRENT_TASK)
     wrapped = wrap_benchmark_code(sanitized)
     output = run_python_in_container(wrapped, DATA_DIR)
     cinfer_tool_calls.append({"code": code, "output": output})
@@ -150,8 +119,6 @@ async def run_cinfer(server_url: str) -> dict:
 
     results = []
     for scenario in SCENARIOS:
-        global CURRENT_TASK
-        CURRENT_TASK = scenario.user_message
         TRACE_DIR.mkdir(parents=True, exist_ok=True)
         trace_path = TRACE_DIR / f"cinfer_{scenario.name}.log"
         agent = Agent(

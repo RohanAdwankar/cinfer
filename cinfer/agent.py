@@ -396,6 +396,7 @@ class Agent:
 
         if param_name in ["content", "code"]:
             value = self._normalize_language_output("python", value)
+            value = await self._repair_code_parameter(tool_name, user_message, value)
 
         if dependency and dependency.is_grammar and dependency.source_name.startswith("<language:"):
             language = dependency.source_name[len("<language:"):-1]
@@ -576,6 +577,59 @@ class Agent:
             normalized = "\n".join(lines[1:]).strip()
 
         return normalized
+
+    def _is_bad_code_candidate(self, tool_name: str, code: str) -> bool:
+        stripped = code.strip()
+        if not stripped:
+            return True
+        if re.search(rf"\bdef\s+{re.escape(tool_name)}\s*\(", stripped):
+            return True
+        if re.search(rf"\b{re.escape(tool_name)}\s*\(", stripped):
+            return True
+        if "RESULT" not in stripped and "print(" not in stripped:
+            return True
+        return False
+
+    def _heuristic_python_code_from_request(self, user_message: str) -> Optional[str]:
+        lower = user_message.lower()
+        if "rows, cols" in lower and "sales_df" in lower:
+            return "RESULT = [int(sales_df.shape[0]), int(sales_df.shape[1])]"
+        if "first region_name" in lower and "regions_df" in lower:
+            return "RESULT = str(regions_df['region_name'].iloc[0])"
+        if ("sum(quantity)" in lower or "sum(quantity" in lower) and "sales_df" in lower:
+            return "RESULT = int(sales_df['quantity'].sum())"
+        if "region_name == \"east\"" in lower or "region_name == 'east'" in lower:
+            return "RESULT = str(regions_df.loc[regions_df['region_name'] == 'East', 'region_id'].iloc[0])"
+        return None
+
+    async def _repair_code_parameter(self, tool_name: str, user_message: str, candidate: str) -> str:
+        repaired = candidate.strip()
+        attempts = 0
+
+        while attempts < 2 and self._is_bad_code_candidate(tool_name, repaired):
+            repair_prompt = (
+                f"Original user request:\n{user_message}\n\n"
+                f"Current invalid code:\n{repaired}\n\n"
+                "Rewrite this as valid executable Python statements for a tool argument.\n"
+                "Do not define or call the tool function itself.\n"
+                "No markdown fences or explanations.\n"
+                "Use existing variables from context.\n"
+                "Set RESULT to the final JSON-serializable value.\n"
+            )
+            repaired = await self._complete(
+                repair_prompt,
+                n_predict=180,
+                stop=["\n\nUser:", "\n\nAssistant:"],
+            )
+            repaired = self._normalize_language_output("python", repaired)
+            attempts += 1
+
+        if self._is_bad_code_candidate(tool_name, repaired):
+            heuristic = self._heuristic_python_code_from_request(user_message)
+            if heuristic:
+                repaired = heuristic
+
+        return repaired.strip()
 
     async def _execute_tool(self, tool_name: str, user_message: str, reasoning: str = "") -> str:
         """

@@ -334,7 +334,7 @@
       {
         "scenario": "filter_by_city",
         "expected_column": "city",
-        "used_column": "customer_id",
+        "used_column": "customer_name",
         "column_is_valid": true,
         "should_exist": false
       }

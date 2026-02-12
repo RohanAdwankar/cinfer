@@ -1,4 +1,6 @@
-{
+import json
+
+RESULT = {
   "name": "Alice",
   "age": 30
 }
