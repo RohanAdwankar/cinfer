@@ -3,6 +3,7 @@ Agent class for running inference with grammar constraints
 """
 
 import asyncio
+import ast
 import json
 import logging
 import re
@@ -13,6 +14,89 @@ from .registry import registry, ToolMetadata
 from .grammar import grammar_generator
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_python_tool_code(code: str) -> str:
+    def extract_fenced_code(text: str) -> str:
+        def score_block(block: str) -> int:
+            value = block.strip()
+            score = 0
+            if not value:
+                return -100
+            if "RESULT" in value:
+                score += 10
+            if "=" in value:
+                score += 4
+            if "print(" in value:
+                score += 2
+            if "def run_python" in value:
+                score -= 8
+            return score
+
+        blocks = re.findall(r"```\s*python\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
+        if not blocks:
+            blocks = re.findall(r"```\s*\w*\s*\n(.*?)```", text, re.DOTALL)
+
+        if blocks:
+            return max(blocks, key=score_block).strip()
+
+        return text.strip()
+
+    def unwrap_run_python_call(text: str) -> str:
+        match = re.search(r"run_python\s*\(\s*([\s\S]+?)\s*\)", text)
+        if not match:
+            return text
+
+        inner = match.group(1).strip()
+        try:
+            return ast.literal_eval(inner)
+        except Exception:
+            return text
+
+    cleaned = extract_fenced_code(code)
+    cleaned = unwrap_run_python_call(cleaned)
+    cleaned = cleaned.strip()
+
+    if not cleaned:
+        return "RESULT = None"
+
+    if cleaned.startswith("RESULT\n"):
+        rest = cleaned.split("\n", 1)[1].strip()
+        if rest:
+            cleaned = f"RESULT = {rest}"
+
+    lines = cleaned.splitlines()
+    if len(lines) >= 2 and lines[0].strip() == "RESULT":
+        rhs = "\n".join(lines[1:]).strip()
+        if rhs:
+            cleaned = f"RESULT = {rhs}"
+
+    fn_match = re.search(r"def\s+run_python\s*\([^)]*\)\s*:\s*\n(?:\s+.*\n)*?\s+return\s+(.+)", cleaned)
+    if fn_match and "RESULT" not in cleaned:
+        cleaned = f"RESULT = {fn_match.group(1).strip()}"
+
+    if "RESULT" not in cleaned:
+        print_match = re.fullmatch(r"print\((.+)\)\s*", cleaned, re.DOTALL)
+        if print_match:
+            cleaned = f"RESULT = {print_match.group(1).strip()}"
+
+    if "RESULT" not in cleaned:
+        try:
+            parsed = ast.parse(cleaned)
+            if len(parsed.body) == 1 and isinstance(parsed.body[0], ast.Expr):
+                cleaned = f"RESULT = {cleaned}"
+        except Exception:
+            pass
+
+    if "RESULT" not in cleaned:
+        cleaned = re.sub(r"\bresult\s*=", "RESULT =", cleaned)
+
+    if "RESULT" not in cleaned:
+        stripped = cleaned.strip()
+        if (stripped.startswith("{") and stripped.endswith("}")) or (stripped.startswith("[") and stripped.endswith("]")):
+            cleaned = f"RESULT = {stripped}"
+
+    return cleaned.strip()
 
 
 class Agent:
