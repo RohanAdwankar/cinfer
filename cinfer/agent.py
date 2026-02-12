@@ -156,6 +156,9 @@ class Agent:
         Returns:
             Agent's reasoning
         """
+        if self.reasoning_tokens <= 0:
+            return ""
+
         logger.info("Agent reasoning (unconstrained)...")
         prompt = self._build_prompt(user_message)
 
@@ -284,7 +287,15 @@ class Agent:
 
         if param_name in ["content", "code"]:
             # Full context for code generation
-            prompt = f"{self.system_prompt}\n\n{user_message}\n\nOutput only the code, nothing else.\n\n"
+            prompt = (
+                f"{self.system_prompt}\n\n"
+                f"User request: {user_message}\n"
+                "Write ONLY executable Python statements for the tool parameter.\n"
+                "Do not define functions or classes.\n"
+                "Do not include markdown fences or explanations.\n"
+                "Use existing variables if provided by the tool context.\n"
+                "Set RESULT to the final JSON-serializable value.\n"
+            )
         elif is_complex:
             # For complex types (lists, dicts), be very explicit about JSON format
             # Check if this is a List of Pydantic models to provide structure guidance
@@ -326,22 +337,28 @@ class Agent:
 
         # Use more tokens for complex types
         if param_name in ["content", "code"]:
-            n_predict = 500
+            n_predict = 220
         elif is_complex:
             n_predict = 250  # Enough for JSON but not too much rambling
         else:
             n_predict = 50  # Short for simple values (names, ages, enum values)
 
-        if param_grammar:
+        # The current language grammars can be too permissive/noisy for long code outputs.
+        # For code/content, prefer unconstrained generation with strict prompting.
+        use_grammar = bool(param_grammar)
+        if param_name in ["content", "code"] and dependency and dependency.is_grammar and dependency.source_name.startswith("<language:"):
+            use_grammar = False
+
+        if use_grammar:
             logger.info(f"Using grammar constraint for parameter {param_name} ({len(param_grammar)} bytes)")
             value = await self._complete(prompt, grammar=param_grammar, n_predict=n_predict)
         else:
             logger.info(f"No grammar constraint for parameter {param_name}, using unconstrained")
             # Use appropriate generation based on complexity
-            value = await self._complete(prompt, n_predict=n_predict)
+            value = await self._complete(prompt, n_predict=n_predict, stop=["\n\nUser:", "\n\nAssistant:"])
 
         # Clean up the value
-        value = value.strip().strip('"').strip('`')
+        value = value.strip().strip('"')
         # Remove markdown code fences
         if value.startswith('```'):
             lines = value.split('\n')
@@ -350,8 +367,8 @@ class Agent:
                 lines = lines[1:]  # Skip first line
                 if lines and lines[-1].strip().startswith('```'):
                     lines = lines[:-1]  # Skip last line if it's closing fence
-                # For complex types, keep all lines; for simple, take first
-                if is_complex:
+                # For complex types and code, keep all lines; for simple, take first
+                if is_complex or param_name in ["content", "code"]:
                     value = '\n'.join(lines).strip()
                 else:
                     value = lines[0].strip() if lines else ''
@@ -376,6 +393,9 @@ class Agent:
         
         # Cleanup leading/trailing punctuation/quotes again
         value = value.strip().strip('"\'`.:')
+
+        if param_name in ["content", "code"]:
+            value = self._normalize_language_output("python", value)
 
         if dependency and dependency.is_grammar and dependency.source_name.startswith("<language:"):
             language = dependency.source_name[len("<language:"):-1]
@@ -525,12 +545,31 @@ class Agent:
 
         if "```" in normalized:
             import re
+
+            def score_block(block: str) -> int:
+                text = block.strip()
+                score = 0
+                if not text:
+                    return -100
+                if "RESULT" in text:
+                    score += 10
+                if "=" in text:
+                    score += 4
+                if "print(" in text:
+                    score += 2
+                if "def run_python" in text:
+                    score -= 8
+                if "{" in text and "}" in text:
+                    score += 1
+                return score
+
             lang = re.escape(language)
-            fenced = re.search(rf"```\s*{lang}\s*\n(.*?)```", normalized, re.DOTALL | re.IGNORECASE)
-            if not fenced:
-                fenced = re.search(r"```\s*\w*\s*\n(.*?)```", normalized, re.DOTALL)
-            if fenced:
-                normalized = fenced.group(1).strip()
+            blocks = re.findall(rf"```\s*{lang}\s*\n(.*?)```", normalized, re.DOTALL | re.IGNORECASE)
+            if not blocks:
+                blocks = re.findall(r"```\s*\w*\s*\n(.*?)```", normalized, re.DOTALL)
+
+            if blocks:
+                normalized = max(blocks, key=score_block).strip()
 
         lines = normalized.splitlines()
         if lines and lines[0].strip().lower() == language.lower() and len(lines) > 1:
@@ -594,7 +633,8 @@ class Agent:
 
         # Reasoning step
         reasoning = await self._reason(user_message)
-        self.conversation_history.append({"role": "Reasoning", "content": reasoning})
+        if reasoning:
+            self.conversation_history.append({"role": "Reasoning", "content": reasoning})
 
         # Determine if we should use a tool
         tools = registry.get_all_tools()

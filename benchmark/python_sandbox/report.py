@@ -4,6 +4,16 @@ from typing import Any, Tuple
 
 def _extract_json(text: str) -> Tuple[Any, str | None]:
     cleaned = text.strip()
+    if not cleaned:
+        return None, "no_json"
+
+    decoder = json.JSONDecoder()
+    try:
+        obj, _ = decoder.raw_decode(cleaned)
+        return obj, None
+    except json.JSONDecodeError:
+        pass
+
     start = cleaned.find("{")
     alt_start = cleaned.find("[")
     if start == -1 or (alt_start != -1 and alt_start < start):
@@ -12,7 +22,6 @@ def _extract_json(text: str) -> Tuple[Any, str | None]:
     if start == -1:
         return None, "no_json"
 
-    decoder = json.JSONDecoder()
     try:
         obj, _ = decoder.raw_decode(cleaned[start:])
         return obj, None

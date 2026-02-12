@@ -6,8 +6,19 @@ from .langchain import run_langchain
 from .report import summarize_run, write_report
 
 
+ALLOWED_SERVER_URL = "http://127.0.0.1:8080"
+
+
+def _validate_server_url(server_url: str) -> None:
+    if server_url.rstrip("/") != ALLOWED_SERVER_URL:
+        raise ValueError(
+            f"Only {ALLOWED_SERVER_URL} is allowed for this benchmark; got {server_url}"
+        )
+
+
 async def main() -> None:
-    server_url = "http://127.0.0.1:8080"
+    server_url = ALLOWED_SERVER_URL
+    _validate_server_url(server_url)
     report_path = Path(__file__).resolve().parent / "report.txt"
 
     langchain_data = await run_langchain(server_url)

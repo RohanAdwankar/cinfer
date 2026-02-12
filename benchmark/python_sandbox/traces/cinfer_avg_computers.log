@@ -2,13 +2,13 @@
 
 
 ================================================================================
-PROMPT (length=521, n_predict=60):
+PROMPT (length=1021, n_predict=60):
 ================================================================================
-You are a Python data analyst running in a sandbox. Always call run_python with valid Python code. The code must read CSVs from /input and print JSON only.
+You are a Python data analyst running in a sandbox. Always call run_python with valid Python code. Write a solve(sales_df, regions_df) function that returns a JSON-serializable value. Do not read files; sales_df and regions_df are already loaded. Do not print; return the value. Do not call run_python inside the code. Input files are CSV (not JSON). Use pandas or csv. sales.csv columns: order_id, customer_id, region_id, product_category, price_usd, quantity. regions.csv columns: region_id, region_name. If you need region_name, join on region_id. Compute revenue as price_usd * quantity. The harness will json.dumps the return value.
 
-User: Read /input/sales.csv. Compute the average order revenue for product_category == "Computers". Print a JSON number with 2 decimals.
+User: Use sales_df (already loaded). Compute the average order revenue for product_category == "Computers". Return a JSON number with 2 decimals.
 
-User: Read /input/sales.csv. Compute the average order revenue for product_category == "Computers". Print a JSON number with 2 decimals.
+User: Use sales_df (already loaded). Compute the average order revenue for product_category == "Computers". Return a JSON number with 2 decimals.
 
 Assistant:
 
@@ -18,22 +18,26 @@ Available tools:
 Thinking: To process the request, I need to
 ================================================================================
 GENERATED:
- read the CSV file, filter for the product category "Computers", and then compute the average order revenue.  I will then print the result as a JSON number with 2 decimals.
-```tool_code
-run_python(prompt='Read /input/sales.csv. Compute the
+ find the average order revenue for product_category "Computers". I will use the pandas DataFrame to compute the average order revenue for the specified product category.
+```python
+def run_python(sales_df, regions_df):
+    try:
+        average_revenue = sales_
 ================================================================================
 
 
 ================================================================================
-PROMPT (length=617, n_predict=50):
+PROMPT (length=1129, n_predict=50):
 ================================================================================
-You are a Python data analyst running in a sandbox. Always call run_python with valid Python code. The code must read CSVs from /input and print JSON only.
+You are a Python data analyst running in a sandbox. Always call run_python with valid Python code. Write a solve(sales_df, regions_df) function that returns a JSON-serializable value. Do not read files; sales_df and regions_df are already loaded. Do not print; return the value. Do not call run_python inside the code. Input files are CSV (not JSON). Use pandas or csv. sales.csv columns: order_id, customer_id, region_id, product_category, price_usd, quantity. regions.csv columns: region_id, region_name. If you need region_name, join on region_id. Compute revenue as price_usd * quantity. The harness will json.dumps the return value.
 
-User: Read /input/sales.csv. Compute the average order revenue for product_category == "Computers". Print a JSON number with 2 decimals.
+User: Use sales_df (already loaded). Compute the average order revenue for product_category == "Computers". Return a JSON number with 2 decimals.
 
-Reasoning: read the CSV file, filter for the product category "Computers", and then compute the average order revenue.  I will then print the result as a JSON number with 2 decimals.
-```tool_code
-run_python(prompt='Read /input/sales.csv. Compute the
+Reasoning: find the average order revenue for product_category "Computers". I will use the pandas DataFrame to compute the average order revenue for the specified product category.
+```python
+def run_python(sales_df, regions_df):
+    try:
+        average_revenue = sales_
 
 User: 
 
@@ -51,11 +55,11 @@ run_python
 
 
 ================================================================================
-PROMPT (length=326, n_predict=500):
+PROMPT (length=817, n_predict=500):
 ================================================================================
-You are a Python data analyst running in a sandbox. Always call run_python with valid Python code. The code must read CSVs from /input and print JSON only.
+You are a Python data analyst running in a sandbox. Always call run_python with valid Python code. Write a solve(sales_df, regions_df) function that returns a JSON-serializable value. Do not read files; sales_df and regions_df are already loaded. Do not print; return the value. Do not call run_python inside the code. Input files are CSV (not JSON). Use pandas or csv. sales.csv columns: order_id, customer_id, region_id, product_category, price_usd, quantity. regions.csv columns: region_id, region_name. If you need region_name, join on region_id. Compute revenue as price_usd * quantity. The harness will json.dumps the return value.
 
-Read /input/sales.csv. Compute the average order revenue for product_category == "Computers". Print a JSON number with 2 decimals.
+Use sales_df (already loaded). Compute the average order revenue for product_category == "Computers". Return a JSON number with 2 decimals.
 
 Output only the code, nothing else.
 
@@ -354,75 +358,66 @@ tok-comment ::= "#" [^\n]* ("\n")?
 ================================================================================
 GENERATED:
 ```
-import json
+def run_python(sales_df, regions_df):
+    """
+    Computes the average order revenue for product_category == "Computers".
 
-def run_python(input_file):
-    with open(input_file, 'r') as f:
-        data = json.load(f)
-    return data
+    Args:
+        sales_df: A pandas DataFrame containing sales data.
+        regions_df: A pandas DataFrame containing region data.
 
-if __name__ == "__main__":
-    input_file = "/input/sales.csv"
-    result = run_python(input_file)
-    print(result)
+    Returns:
+        A JSON-serializable value.
+    """
+    return {
+        "average_revenue": round(sales_df["product_category"] == "Computers" ? sales_df["price_usd"] * sales_df["quantity"] : 0, 2)
+    }
 ```
+```python
+def run_python(sales_df, regions_df):
+    """
+    Computes the average order revenue for product_category == "Computers".
+
+    Args:
+        sales_df: A pandas DataFrame containing sales data.
+        regions_df: A pandas DataFrame containing region data.
+
+    Returns:
+        A JSON-serializable value.
+    """
+    return {
+        "average_revenue": round(sales_df["product_category"] == "Computers" ? sales_df["price_usd"] * sales_df["quantity"] : 0, 2)
+    }
 ```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
+```python
+def run_python(sales_df, regions_df):
+    """
+    Computes the average order revenue for product_category == "Computers".
+
+    Args:
+        sales_df: A pandas DataFrame containing sales data.
+        regions_df: A pandas DataFrame containing region data.
+
+    Returns:
+        A JSON-serializable value.
+    """
+    return {
+        "average_revenue": round(sales_df["product_category"] == "Computers" ? sales_df["price_usd"] * sales_df["quantity"] : 0, 2)
+    }
 ```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_revenue": 12345.67
-}
-```
-```
-{
-  "total_revenue": 12345.67,
-  "average_order_
+```python
+def run_python(sales_df, regions_df):
+    """
+    Computes the average order revenue for product_category == "Computers".
+
+    Args:
+        sales_df: A pandas DataFrame containing sales data.
+        regions_df: A pandas DataFrame containing region data.
+
+    Returns:
+        A JSON-serializable value.
+    """
+    return {
+        "average
 ================================================================================
 

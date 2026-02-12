@@ -7,6 +7,20 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 SALES_CSV = DATA_DIR / "sales.csv"
 REGIONS_CSV = DATA_DIR / "regions.csv"
 
+SALES_COLUMNS = [
+    "order_id",
+    "customer_id",
+    "region_id",
+    "product_category",
+    "price_usd",
+    "quantity",
+]
+
+REGIONS_COLUMNS = [
+    "region_id",
+    "region_name",
+]
+
 
 @dataclass
 class Scenario:
@@ -58,31 +72,31 @@ def _expected_east_total():
 
 SCENARIOS = [
     Scenario(
-        name="revenue_by_region",
+        name="shape_list",
         user_message=(
-            "Read /input/sales.csv and /input/regions.csv. Compute total revenue per region_name ")
-        + "(price_usd * quantity). Print a JSON object mapping region_name to revenue (2 decimals).",
-        expected=_expected_revenue_by_region(),
+            "Use sales_df (already loaded). Return [rows, cols] as a JSON list of integers."
+        ),
+        expected=[int(_load_frames()[0].shape[0]), int(_load_frames()[0].shape[1])],
     ),
     Scenario(
-        name="top_customer",
+        name="first_region_name",
         user_message=(
-            "Read /input/sales.csv. Find the customer_id with the highest total revenue ")
-        + "(price_usd * quantity). Print JSON: {\"customer_id\": ..., \"revenue\": ...}.",
-        expected=_expected_top_customer(),
+            "Use regions_df (already loaded). Return the first region_name as a JSON string."
+        ),
+        expected=str(_load_frames()[1].iloc[0]["region_name"]),
     ),
     Scenario(
-        name="avg_computers",
+        name="sum_quantity",
         user_message=(
-            "Read /input/sales.csv. Compute the average order revenue for product_category == \"Computers\". ")
-        + "Print a JSON number with 2 decimals.",
-        expected=_expected_avg_computers(),
+            "Use sales_df (already loaded). Return sum(quantity) as a JSON integer."
+        ),
+        expected=int(_load_frames()[0]["quantity"].sum()),
     ),
     Scenario(
-        name="east_total",
+        name="east_region_id",
         user_message=(
-            "Read /input/sales.csv and /input/regions.csv. Join on region_id and compute total revenue ")
-        + "for region_name == \"East\". Print a JSON number with 2 decimals.",
-        expected=_expected_east_total(),
+            "Use regions_df (already loaded). Find region_id where region_name == \"East\". "
+        ) + "Return that region_id as a JSON string.",
+        expected=str(_load_frames()[1].loc[_load_frames()[1]["region_name"] == "East", "region_id"].iloc[0]),
     ),
 ]
