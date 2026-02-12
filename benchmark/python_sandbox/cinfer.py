@@ -38,7 +38,7 @@ async def run_cinfer(server_url: str) -> dict:
                 "Do not read files. Do not print. "
                 "Put the final JSON-serializable answer in RESULT. "
                 f"sales_df columns: {', '.join(SALES_COLUMNS)}. "
-                f"regions_df columns: {', '.join(REGIONS_COLUMNS)}." 
+                f"regions_df columns: {', '.join(REGIONS_COLUMNS)}."
             ),
             server_url=server_url,
             max_iterations=1,

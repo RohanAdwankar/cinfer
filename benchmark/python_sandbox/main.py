@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 
 from .cinfer import run_cinfer
+from .cinfer_no_language_dependency import run_cinfer_no_language_dependency
 from .langchain import run_langchain
 from .report import summarize_run, write_report
 
@@ -23,11 +24,22 @@ async def main() -> None:
 
     langchain_data = await run_langchain(server_url)
     cinfer_data = await run_cinfer(server_url)
+    cinfer_no_language_dependency_data = await run_cinfer_no_language_dependency(
+        server_url
+    )
 
-    raw = {"langchain": langchain_data, "cinfer": cinfer_data}
+    raw = {
+        "langchain": langchain_data,
+        "cinfer": cinfer_data,
+        "cinfer_no_language_dependency": cinfer_no_language_dependency_data,
+    }
     runs = [
         summarize_run("LangChain", langchain_data["results"]),
         summarize_run("Cinfer", cinfer_data["results"]),
+        summarize_run(
+            "Cinfer (no depends_language)",
+            cinfer_no_language_dependency_data["results"],
+        ),
     ]
     write_report(str(report_path), runs, raw)
     print(f"Report written to {report_path}")
