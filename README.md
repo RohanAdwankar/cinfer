@@ -6,16 +6,16 @@ It works by constraining generation at inference time to obey grammers generated
 
 ## Benchmarks
 
-Performance is benchmarked with (Gemma 3)[https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF] a model around 1/100 to 1/1000 the size of the leading models being used for modern agents.
+Performance is benchmarked with [Gemma 3](https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF) a model around 1/100 to 1/1000 the size of the leading models being used for modern agents.
 
-### Python Tasks (./benchmark/python_sandbox)
+### [Python Tasks](./benchmark/python_sandbox)
 All agents are implemented in ~100 lines and are given a tool to run python. 
 
 They are then asked to perform data analysis tasks that require it to write pandas code to solve the problem on the fly. 
 
 The cinfer agent performs with 100% accuracy, while the langraph agent had a 25% accuracy, and the cinfer agent without grammaer constrainsts (@depends_language(code="python")) also has a 25% accuracy.
 
-### Dataframe Querying (./benchmark/dataframe)
+### [Dataframe Querying](./benchmark/dataframe)
 Both agents are given a specialized tool to conduct the querying.
 
 The cinfer agent (~50 lines) performs with 100% accuracy, while the langraph agent (~100 lines) had a 14% accuracy.
