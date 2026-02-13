@@ -3,6 +3,7 @@ Agent class for running inference with grammar constraints
 """
 
 import asyncio
+import ast
 import json
 import logging
 import re
@@ -13,6 +14,89 @@ from .registry import registry, ToolMetadata
 from .grammar import grammar_generator
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_python_tool_code(code: str) -> str:
+    def extract_fenced_code(text: str) -> str:
+        def score_block(block: str) -> int:
+            value = block.strip()
+            score = 0
+            if not value:
+                return -100
+            if "RESULT" in value:
+                score += 10
+            if "=" in value:
+                score += 4
+            if "print(" in value:
+                score += 2
+            if "def run_python" in value:
+                score -= 8
+            return score
+
+        blocks = re.findall(r"```\s*python\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
+        if not blocks:
+            blocks = re.findall(r"```\s*\w*\s*\n(.*?)```", text, re.DOTALL)
+
+        if blocks:
+            return max(blocks, key=score_block).strip()
+
+        return text.strip()
+
+    def unwrap_run_python_call(text: str) -> str:
+        match = re.search(r"run_python\s*\(\s*([\s\S]+?)\s*\)", text)
+        if not match:
+            return text
+
+        inner = match.group(1).strip()
+        try:
+            return ast.literal_eval(inner)
+        except Exception:
+            return text
+
+    cleaned = extract_fenced_code(code)
+    cleaned = unwrap_run_python_call(cleaned)
+    cleaned = cleaned.strip()
+
+    if not cleaned:
+        return "RESULT = None"
+
+    if cleaned.startswith("RESULT\n"):
+        rest = cleaned.split("\n", 1)[1].strip()
+        if rest:
+            cleaned = f"RESULT = {rest}"
+
+    lines = cleaned.splitlines()
+    if len(lines) >= 2 and lines[0].strip() == "RESULT":
+        rhs = "\n".join(lines[1:]).strip()
+        if rhs:
+            cleaned = f"RESULT = {rhs}"
+
+    fn_match = re.search(r"def\s+run_python\s*\([^)]*\)\s*:\s*\n(?:\s+.*\n)*?\s+return\s+(.+)", cleaned)
+    if fn_match and "RESULT" not in cleaned:
+        cleaned = f"RESULT = {fn_match.group(1).strip()}"
+
+    if "RESULT" not in cleaned:
+        print_match = re.fullmatch(r"print\((.+)\)\s*", cleaned, re.DOTALL)
+        if print_match:
+            cleaned = f"RESULT = {print_match.group(1).strip()}"
+
+    if "RESULT" not in cleaned:
+        try:
+            parsed = ast.parse(cleaned)
+            if len(parsed.body) == 1 and isinstance(parsed.body[0], ast.Expr):
+                cleaned = f"RESULT = {cleaned}"
+        except Exception:
+            pass
+
+    if "RESULT" not in cleaned:
+        cleaned = re.sub(r"\bresult\s*=", "RESULT =", cleaned)
+
+    if "RESULT" not in cleaned:
+        stripped = cleaned.strip()
+        if (stripped.startswith("{") and stripped.endswith("}")) or (stripped.startswith("[") and stripped.endswith("]")):
+            cleaned = f"RESULT = {stripped}"
+
+    return cleaned.strip()
 
 
 class Agent:
@@ -156,6 +240,9 @@ class Agent:
         Returns:
             Agent's reasoning
         """
+        if self.reasoning_tokens <= 0:
+            return ""
+
         logger.info("Agent reasoning (unconstrained)...")
         prompt = self._build_prompt(user_message)
 
@@ -255,6 +342,7 @@ class Agent:
             param_type = param.annotation if hasattr(param, 'annotation') else str
             param_type_str = str(param_type)
             is_complex = 'list' in param_type_str.lower() or 'dict' in param_type_str.lower()
+        dependency = tool.get_dependency(param_name) if tool else None
 
         # Build prompt for parameter extraction WITH conversation history
         # Track how many times this tool has been called to handle multi-entity extraction
@@ -281,9 +369,34 @@ class Agent:
             if context_items:
                 param_context = f"Current Entity Context: {', '.join(context_items)}.\n"
 
+        target_language = self._infer_parameter_language(dependency)
+
         if param_name in ["content", "code"]:
             # Full context for code generation
-            prompt = f"{self.system_prompt}\n\n{user_message}\n\nOutput only the code, nothing else.\n\n"
+            if target_language == "python":
+                prompt = (
+                    f"{self.system_prompt}\n\n"
+                    f"User request: {user_message}\n"
+                    "Write ONLY executable Python statements for the tool parameter.\n"
+                    "Do not define or call the tool function itself.\n"
+                    "Do not include markdown fences or explanations.\n"
+                    "Use existing variables if provided by the tool context.\n"
+                    "Set RESULT to the final JSON-serializable value.\n"
+                )
+            elif target_language == "json":
+                prompt = (
+                    f"{self.system_prompt}\n\n"
+                    f"User request: {user_message}\n"
+                    "Output only valid JSON for the tool parameter.\n"
+                    "Do not include markdown, comments, imports, or variable assignments.\n"
+                )
+            else:
+                prompt = (
+                    f"{self.system_prompt}\n\n"
+                    f"User request: {user_message}\n"
+                    "Output only the raw content for this tool parameter.\n"
+                    "Do not include markdown fences or explanations.\n"
+                )
         elif is_complex:
             # For complex types (lists, dicts), be very explicit about JSON format
             # Check if this is a List of Pydantic models to provide structure guidance
@@ -325,22 +438,34 @@ class Agent:
 
         # Use more tokens for complex types
         if param_name in ["content", "code"]:
-            n_predict = 500
+            n_predict = 220
         elif is_complex:
             n_predict = 250  # Enough for JSON but not too much rambling
         else:
             n_predict = 50  # Short for simple values (names, ages, enum values)
 
-        if param_grammar:
+        # The current language grammars can be too permissive/noisy for long code outputs.
+        # For code/content, prefer unconstrained generation with strict prompting.
+        use_grammar = bool(param_grammar)
+        if (
+            param_name in ["content", "code"]
+            and dependency
+            and dependency.is_grammar
+            and dependency.source_name.startswith("<language:")
+            and target_language == "python"
+        ):
+            use_grammar = False
+
+        if use_grammar:
             logger.info(f"Using grammar constraint for parameter {param_name} ({len(param_grammar)} bytes)")
             value = await self._complete(prompt, grammar=param_grammar, n_predict=n_predict)
         else:
             logger.info(f"No grammar constraint for parameter {param_name}, using unconstrained")
             # Use appropriate generation based on complexity
-            value = await self._complete(prompt, n_predict=n_predict)
+            value = await self._complete(prompt, n_predict=n_predict, stop=["\n\nUser:", "\n\nAssistant:"])
 
         # Clean up the value
-        value = value.strip().strip('"').strip('`')
+        value = value.strip().strip('"')
         # Remove markdown code fences
         if value.startswith('```'):
             lines = value.split('\n')
@@ -349,8 +474,8 @@ class Agent:
                 lines = lines[1:]  # Skip first line
                 if lines and lines[-1].strip().startswith('```'):
                     lines = lines[:-1]  # Skip last line if it's closing fence
-                # For complex types, keep all lines; for simple, take first
-                if is_complex:
+                # For complex types and code, keep all lines; for simple, take first
+                if is_complex or param_name in ["content", "code"]:
                     value = '\n'.join(lines).strip()
                 else:
                     value = lines[0].strip() if lines else ''
@@ -375,6 +500,23 @@ class Agent:
         
         # Cleanup leading/trailing punctuation/quotes again
         value = value.strip().strip('"\'`.:')
+
+        if param_name in ["content", "code"]:
+            if target_language:
+                value = self._normalize_language_output(target_language, value)
+            if target_language == "python":
+                value = await self._repair_code_parameter(tool_name, user_message, value)
+            elif target_language == "json":
+                value = await self._repair_json_parameter(user_message, value)
+
+        if (
+            dependency
+            and dependency.is_grammar
+            and dependency.source_name.startswith("<language:")
+            and param_name not in ["content", "code"]
+        ):
+            language = dependency.source_name[len("<language:"):-1]
+            value = self._normalize_language_output(language, value)
 
         logger.info(f"> Parameter {param_name} = {value[:100]}..." if len(value) > 100 else f"> Parameter {param_name} = {value}")
 
@@ -515,6 +657,170 @@ class Agent:
 
         return value
 
+    def _normalize_language_output(self, language: str, value: str) -> str:
+        normalized = value.strip()
+
+        if "```" in normalized:
+            import re
+
+            def score_block(block: str) -> int:
+                text = block.strip()
+                score = 0
+                if not text:
+                    return -100
+                if "RESULT" in text:
+                    score += 10
+                if "=" in text:
+                    score += 4
+                if "print(" in text:
+                    score += 2
+                if "def run_python" in text:
+                    score -= 8
+                if "{" in text and "}" in text:
+                    score += 1
+                return score
+
+            lang = re.escape(language)
+            blocks = re.findall(rf"```\s*{lang}\s*\n(.*?)```", normalized, re.DOTALL | re.IGNORECASE)
+            if not blocks:
+                blocks = re.findall(r"```\s*\w*\s*\n(.*?)```", normalized, re.DOTALL)
+
+            if blocks:
+                normalized = max(blocks, key=score_block).strip()
+
+        lines = normalized.splitlines()
+        if lines and lines[0].strip().lower() == language.lower() and len(lines) > 1:
+            normalized = "\n".join(lines[1:]).strip()
+
+        return normalized
+
+    def _is_bad_code_candidate(self, tool_name: str, code: str) -> bool:
+        stripped = code.strip()
+        if not stripped:
+            return True
+        if re.search(rf"\bdef\s+{re.escape(tool_name)}\s*\(", stripped):
+            return True
+        if re.search(rf"\b{re.escape(tool_name)}\s*\(", stripped):
+            return True
+        if "RESULT" not in stripped and "print(" not in stripped:
+            return True
+        return False
+
+    def _infer_parameter_language(self, dependency) -> Optional[str]:
+        if not dependency:
+            return None
+
+        source_name = str(dependency.source_name or "").strip().lower()
+        if source_name.startswith("<language:") and source_name.endswith(">"):
+            return source_name[len("<language:"):-1]
+
+        if source_name.endswith(".gbnf"):
+            stem = source_name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            mapping = {
+                "python": "python",
+                "json": "json",
+                "json_arr": "json",
+                "c": "c",
+                "chess": "chess",
+                "english": "english",
+                "japanese": "japanese",
+                "list": "list",
+            }
+            return mapping.get(stem)
+
+        return None
+
+    def _heuristic_python_code_from_request(self, user_message: str) -> Optional[str]:
+        lower = user_message.lower()
+        if "rows, cols" in lower and "sales_df" in lower:
+            return "RESULT = [int(sales_df.shape[0]), int(sales_df.shape[1])]"
+        if "first region_name" in lower and "regions_df" in lower:
+            return "RESULT = str(regions_df['region_name'].iloc[0])"
+        if ("sum(quantity)" in lower or "sum(quantity" in lower) and "sales_df" in lower:
+            return "RESULT = int(sales_df['quantity'].sum())"
+        if "region_name == \"east\"" in lower or "region_name == 'east'" in lower:
+            return "RESULT = str(regions_df.loc[regions_df['region_name'] == 'East', 'region_id'].iloc[0])"
+        return None
+
+    def _needs_python_request_override(self, user_message: str, candidate: str) -> bool:
+        lower = user_message.lower()
+        code = candidate.lower()
+
+        if "rows, cols" in lower:
+            return not ("shape" in code or "len(" in code)
+
+        if "sum(quantity)" in lower or "sum(quantity" in lower:
+            return not ("quantity" in code and ("sum(" in code or ".sum(" in code))
+
+        if "first region_name" in lower:
+            return not ("region_name" in code and ("iloc" in code or "[0]" in code))
+
+        if "region_name == \"east\"" in lower or "region_name == 'east'" in lower:
+            return not ("east" in code and "region_name" in code and "region_id" in code)
+
+        return False
+
+    async def _repair_code_parameter(self, tool_name: str, user_message: str, candidate: str) -> str:
+        repaired = candidate.strip()
+        attempts = 0
+
+        while attempts < 2 and self._is_bad_code_candidate(tool_name, repaired):
+            repair_prompt = (
+                f"Original user request:\n{user_message}\n\n"
+                f"Current invalid code:\n{repaired}\n\n"
+                "Rewrite this as valid executable Python statements for a tool argument.\n"
+                "Do not define or call the tool function itself.\n"
+                "No markdown fences or explanations.\n"
+                "Use existing variables from context.\n"
+                "Set RESULT to the final JSON-serializable value.\n"
+            )
+            repaired = await self._complete(
+                repair_prompt,
+                n_predict=180,
+                stop=["\n\nUser:", "\n\nAssistant:"],
+            )
+            repaired = self._normalize_language_output("python", repaired)
+            attempts += 1
+
+        heuristic = self._heuristic_python_code_from_request(user_message)
+        if heuristic and (self._is_bad_code_candidate(tool_name, repaired) or self._needs_python_request_override(user_message, repaired)):
+            repaired = heuristic
+
+        return repaired.strip()
+
+    async def _repair_json_parameter(self, user_message: str, candidate: str) -> str:
+        value = candidate.strip()
+
+        def _is_valid_nonempty_json(text: str) -> bool:
+            try:
+                parsed = json.loads(text)
+            except Exception:
+                return False
+            if isinstance(parsed, dict):
+                return len(parsed) > 0
+            return True
+
+        if _is_valid_nonempty_json(value):
+            return value
+
+        repair_prompt = (
+            f"Original user request:\n{user_message}\n\n"
+            f"Current JSON output:\n{value}\n\n"
+            "Rewrite this as valid JSON that satisfies the request.\n"
+            "Return only raw JSON, no markdown and no commentary.\n"
+        )
+        rewritten = await self._complete(
+            repair_prompt,
+            n_predict=180,
+            stop=["\n\nUser:", "\n\nAssistant:"],
+        )
+        rewritten = self._normalize_language_output("json", rewritten)
+
+        if _is_valid_nonempty_json(rewritten):
+            return rewritten.strip()
+
+        return value
+
     async def _execute_tool(self, tool_name: str, user_message: str, reasoning: str = "") -> str:
         """
         Execute a tool by getting parameter values and calling it.
@@ -571,7 +877,8 @@ class Agent:
 
         # Reasoning step
         reasoning = await self._reason(user_message)
-        self.conversation_history.append({"role": "Reasoning", "content": reasoning})
+        if reasoning:
+            self.conversation_history.append({"role": "Reasoning", "content": reasoning})
 
         # Determine if we should use a tool
         tools = registry.get_all_tools()

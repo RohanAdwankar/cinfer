@@ -1,0 +1,11 @@
+order_id,customer_id,region_id,product_category,price_usd,quantity
+ORD001,C001,R1,Computers,1200,1
+ORD002,C002,R2,Accessories,25,2
+ORD003,C001,R1,Accessories,75,1
+ORD004,C003,R3,Displays,350,1
+ORD005,C002,R2,Computers,1200,1
+ORD006,C004,R4,Audio,89,3
+ORD007,C001,R1,Accessories,75,2
+ORD008,C003,R3,Displays,350,2
+ORD009,C005,R2,Computers,999,1
+ORD010,C004,R4,Computers,1500,1

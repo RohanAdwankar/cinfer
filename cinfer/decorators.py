@@ -4,7 +4,8 @@ Decorators for tool registration and parameter dependencies
 
 import functools
 import logging
-from typing import Any, Callable
+from pathlib import Path
+from typing import Any, Callable, Dict
 from .registry import registry
 
 logger = logging.getLogger(__name__)
@@ -139,3 +140,77 @@ def depends_grammar(**kwargs):
             return func
 
     return GrammarDecorator(**kwargs)
+
+
+def depends_grammar_file(**kwargs):
+    """
+    Decorator to specify parameter dependencies using a .gbnf file path.
+
+    Usage:
+        @tool
+        @depends_grammar_file(code="grammar/python_grammar/python.gbnf")
+        def new_py_file(code: str) -> str:
+            ...
+    """
+
+    class GrammarFileDecorator:
+        def __init__(self, **grammar_kwargs):
+            self.grammars = grammar_kwargs
+
+        def __call__(self, func: Callable) -> Callable:
+            func_name = func.__name__
+
+            for param_name, grammar_path in self.grammars.items():
+                path = Path(str(grammar_path)).expanduser()
+                if not path.exists() or not path.is_file():
+                    raise FileNotFoundError(f"Grammar file not found: {path}")
+                grammar_str = path.read_text()
+                registry.add_dependency(func_name, param_name, grammar_str, str(path), is_grammar=True)
+                logger.debug(
+                    f"Registered grammar file dependency: {func_name}.{param_name} -> {path} ({len(grammar_str)} bytes)"
+                )
+
+            return func
+
+    return GrammarFileDecorator(**kwargs)
+
+
+def depends_language(**kwargs):
+    """
+    Decorator to specify parameter dependencies using a known language grammar.
+
+    Usage:
+        @tool
+        @depends_language(code="python")
+        def new_py_file(code: str) -> str:
+            ...
+    """
+
+    language_to_path: Dict[str, str] = {
+        "python": "grammar/python_grammar/python.gbnf",
+    }
+
+    class LanguageDecorator:
+        def __init__(self, **language_kwargs):
+            self.languages = language_kwargs
+
+        def __call__(self, func: Callable) -> Callable:
+            func_name = func.__name__
+
+            for param_name, language in self.languages.items():
+                language_key = str(language).strip().lower()
+                if language_key not in language_to_path:
+                    raise ValueError(f"Unsupported language: {language}")
+                path = Path(language_to_path[language_key]).expanduser()
+                if not path.exists() or not path.is_file():
+                    raise FileNotFoundError(f"Grammar file not found: {path}")
+                grammar_str = path.read_text()
+                source_name = f"<language:{language_key}>"
+                registry.add_dependency(func_name, param_name, grammar_str, source_name, is_grammar=True)
+                logger.debug(
+                    f"Registered language grammar dependency: {func_name}.{param_name} -> {source_name} ({len(grammar_str)} bytes)"
+                )
+
+            return func
+
+    return LanguageDecorator(**kwargs)
